@@ -10,7 +10,6 @@
 #include <cmath>
 #include <cstdlib>
 
-// константы
 const float PI = 3.14159265358979323846f;
 const int   SCR_W = 1280;
 const int   SCR_H = 720;
@@ -18,18 +17,13 @@ const int   SHADOW_W = 2048;
 const int   SHADOW_H = 2048;
 const int   NUM_SNOW = 3000;
 
-// границы трассы для лыжника, а то врезается
 const float TRACK_MIN_X = -4.0f;
 const float TRACK_MAX_X = 4.0f;
 
-// функция высоты склона (задает рельеф горы)
 float heightAt(float x, float z) {
     return 0.12f * z + 0.15f * std::sin(x * 0.6f) * std::cos(z * 0.4f);
 }
 
-// шейдеры (программы для видеокарты)
-
-// вершинный шейдер: переводит 3d-координаты в 2d-экран, считает нормали и тени
 const char* MAIN_VS =
 "#version 330 core\n"
 "layout(location = 0) in vec3 aPos;\n"
@@ -52,7 +46,6 @@ const char* MAIN_VS =
 "    gl_Position = projection * view * wp;\n"
 "}\n";
 
-// фрагментный шейдер: считает цвет пикселя (свет, тени, туман)
 const char* MAIN_FS =
 "#version 330 core\n"
 "in vec3 FragPos;\n"
@@ -81,7 +74,6 @@ const char* MAIN_FS =
 "uniform vec3 fogColor;\n"
 "uniform float fogStart;\n"
 "uniform float fogEnd;\n"
-// функция расчета теней с pcf-фильтрацией (сглаживание)
 "float shadowCalc(vec3 N, vec3 L) {\n"
 "    vec3 proj = FragPosLightSpace.xyz / FragPosLightSpace.w;\n"
 "    proj = proj * 0.5 + 0.5;\n"
@@ -96,7 +88,6 @@ const char* MAIN_FS =
 "        }\n"
 "    return sh / 9.0;\n"
 "}\n"
-// расчет направленного света (солнце)
 "vec3 calcDirLight(vec3 N, vec3 V) {\n"
 "    vec3 L = normalize(-dirLightDir);\n"
 "    vec3 tex = texture(diffuseTex, TexCoord).rgb;\n"
@@ -109,7 +100,6 @@ const char* MAIN_FS =
 "    float sh = shadowCalc(N, L);\n"
 "    return amb + (1.0 - sh) * (dif + spec);\n"
 "}\n"
-// расчет точечного света (фонарь)
 "vec3 calcPointLight(vec3 N, vec3 V) {\n"
 "    vec3 L = normalize(pointLightPos - FragPos);\n"
 "    vec3 tex = texture(diffuseTex, TexCoord).rgb;\n"
@@ -133,7 +123,6 @@ const char* MAIN_FS =
 "    FragColor = vec4(color, 1.0);\n"
 "}\n";
 
-// шейдер для теней (записывает только глубину со стороны солнца)
 const char* SHADOW_VS =
 "#version 330 core\n"
 "layout(location = 0) in vec3 aPos;\n"
@@ -147,7 +136,6 @@ const char* SHADOW_FS =
 "#version 330 core\n"
 "void main() {}\n";
 
-// шейдер снега (круглые точки, размер зависит от расстояния)
 const char* SNOW_VS =
 "#version 330 core\n"
 "layout(location = 0) in vec3 aPos;\n"
@@ -170,7 +158,6 @@ const char* SNOW_FS =
 "    FragColor = vec4(1.0, 1.0, 1.0, 0.85);\n"
 "}\n";
 
-// класс для работы с шейдерами
 class Shader {
 public:
     unsigned int ID = 0;
@@ -194,10 +181,8 @@ public:
     void setMat4(const std::string& n, const glm::mat4& x) const { glUniformMatrix4fv(glGetUniformLocation(ID, n.c_str()), 1, GL_FALSE, glm::value_ptr(x)); }
 };
 
-// создание 3d-моделей (мешей)
 struct Mesh { GLuint VAO = 0, VBO = 0, EBO = 0; int indexCount = 0; };
 
-// загрузка данных о вершинах в видеопамять
 Mesh uploadMesh(const std::vector<float>& v, const std::vector<unsigned int>& idx) {
     Mesh m;
     glGenVertexArrays(1, &m.VAO); glGenBuffers(1, &m.VBO); glGenBuffers(1, &m.EBO);
@@ -211,7 +196,6 @@ Mesh uploadMesh(const std::vector<float>& v, const std::vector<unsigned int>& id
     return m;
 }
 
-// куб
 Mesh createCube() {
     float s = 0.5f; std::vector<float> v; std::vector<unsigned int> idx;
     v.insert(v.end(), { -s,-s, s, 0,0,1, 0,0,  s,-s, s, 0,0,1, 1,0,  s, s, s, 0,0,1, 1,1, -s, s, s, 0,0,1, 0,1 });
@@ -224,7 +208,6 @@ Mesh createCube() {
     return uploadMesh(v, idx);
 }
 
-// цилиндр
 Mesh createCylinder(int N) {
     std::vector<float> v; std::vector<unsigned int> idx; float hh = 0.5f, r = 1.0f;
     for (int i = 0; i <= N; i++) {
@@ -242,7 +225,6 @@ Mesh createCylinder(int N) {
     return uploadMesh(v, idx);
 }
 
-// конус
 Mesh createCone(int N) {
     std::vector<float> v; std::vector<unsigned int> idx; float r = 1.0f, h = 1.0f;
     for (int i = 0; i < N; i++) {
@@ -261,7 +243,6 @@ Mesh createCone(int N) {
     return uploadMesh(v, idx);
 }
 
-// ландшафт (гора)
 Mesh createTerrain(float size, int N) {
     std::vector<float> v; std::vector<unsigned int> idx; float half = size * 0.5f;
     for (int i = 0; i <= N; i++) for (int j = 0; j <= N; j++) {
@@ -277,7 +258,6 @@ Mesh createTerrain(float size, int N) {
     return uploadMesh(v, idx);
 }
 
-// процедурные текстуры (генерируются математически)
 float hash01(int ix, int iy, int seed) {
     unsigned int h = (unsigned int)ix * 374761393u + (unsigned int)iy * 668265263u + (unsigned int)seed * 2654435761u;
     h = (h ^ (h >> 13)) * 1274126177u; h = h ^ (h >> 16);
@@ -313,46 +293,37 @@ template <typename F> GLuint makeTexture(int size, F fn) {
     return uploadTexture(size, size, d.data());
 }
 
-// глобальные переменные
 struct Piece { Mesh* mesh; GLuint tex; glm::mat4 local; glm::vec3 mAmb, mDif, mSpec; float shin; };
 Mesh gCube, gCylinder, gCone, gPyramid, gTerrain;
 std::vector<Piece> staticPieces, skierPieces, cabinPieces;
 
-// камера
 glm::vec3 camTarget(0.0f, 0.0f, 0.0f);
 float camYaw = 45.0f, camPitch = 30.0f, camDistance = 20.0f;
 bool mouseDown = false, firstMouse = true; double prevMouseX = 0, prevMouseY = 0;
 
-// анимация
 float animTime = 0.0f, skierDistance = 0.0f, skierLateral = 0.0f, skierLateralSpeed = 0.0f, speedMul = 0.0f; bool paused = false;
 
-// снег
 struct SnowParticle { glm::vec3 pos; float fallSpeed, windX, windZ; };
 std::vector<SnowParticle> snowParticles;
 GLuint snowVAO = 0, snowVBO = 0;
 glm::vec3 cableFrom, cableTo;
 
-// вычисление позиции камеры
 glm::vec3 getCameraPos() {
     float ry = glm::radians(camYaw), rp = glm::radians(camPitch);
     return camTarget + camDistance * glm::vec3(std::cos(rp) * std::sin(ry), std::sin(rp), std::cos(rp) * std::cos(ry));
 }
 float getSkierSpeed() { return 3.0f * (1.0f + speedMul); }
 
-// матрица трансформации лыжника (движение по склону + ограничения)
 glm::mat4 getSkierTransform() {
     float speed = getSkierSpeed();
-    float z = 14.0f - std::fmod(skierDistance, 28.0f); // едет от 14 до -14
+    float z = 14.0f - std::fmod(skierDistance, 28.0f);
     float phase = skierDistance * 0.27f;
 
-    // смещение по x (виляет) и ограничение трассы (чтобы не врезался в шале)
     float x = skierLateral + 1.5f * std::sin(phase);
     x = glm::clamp(x, TRACK_MIN_X, TRACK_MAX_X);
 
     float y = heightAt(x, z) + 0.05f;
 
-    // поворот модели по направлению движения
-    // сюда добавлена skierLateralSpeed, чтобы лыжник поворачивал лыжи при управлении
     float dxdt = 1.5f * 0.27f * speed * std::cos(phase) + skierLateralSpeed;
     float dzdt = -speed;
     float yaw = std::atan2(-dxdt, -dzdt);
@@ -360,25 +331,21 @@ glm::mat4 getSkierTransform() {
     return glm::translate(glm::mat4(1.0f), glm::vec3(x, y, z)) * glm::rotate(glm::mat4(1.0f), yaw, glm::vec3(0, 1, 0));
 }
 
-// матрица трансформации кабинок (движение по тросам)
 glm::mat4 getCabinTransform(int i) {
     float u = 0.1f + 0.8f * (0.5f + 0.5f * std::sin(animTime * 0.3f + i * PI));
     glm::vec3 pos = glm::mix(cableFrom, cableTo, u);
 
-    // разводим кабинки на разные тросы (лево/право)
     if (i == 0) pos.x -= 1.0f;
     else pos.x += 1.0f;
 
     return glm::translate(glm::mat4(1.0f), pos);
 }
 
-// обновление снега
 void updateSnow(float dt) {
     for (auto& p : snowParticles) {
-        p.pos.y -= p.fallSpeed * dt; // падает вниз
-        p.pos.x += p.windX * dt; p.pos.z += p.windZ * dt; // сдувается ветром
+        p.pos.y -= p.fallSpeed * dt;
+        p.pos.x += p.windX * dt; p.pos.z += p.windZ * dt;
 
-        // если упал на землю - респавн наверху
         if (p.pos.y < heightAt(p.pos.x, p.pos.z) - 0.5f) {
             p.pos = glm::vec3((rand() % 10000) / 100.0f - 50.0f, 30.0f + (rand() % 1000) / 100.0f, (rand() % 10000) / 100.0f - 50.0f);
         }
@@ -391,7 +358,6 @@ void updateSnowVBO() {
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(glm::vec3) * NUM_SNOW, pos.data());
 }
 
-// реакция на действия пользователя
 void framebuffer_size_callback(GLFWwindow*, int w, int h) { glViewport(0, 0, w, h); }
 void mouse_button_callback(GLFWwindow*, int btn, int action, int) { if (btn == GLFW_MOUSE_BUTTON_LEFT) mouseDown = (action == GLFW_PRESS); }
 void cursor_callback(GLFWwindow*, double x, double y) {
@@ -405,17 +371,15 @@ void scroll_callback(GLFWwindow*, double, double yoff) { camDistance -= (float)y
 void key_callback(GLFWwindow* win, int key, int, int action, int) {
     if (action != GLFW_PRESS) return;
     if (key == GLFW_KEY_ESCAPE) glfwSetWindowShouldClose(win, true);
-    if (key == GLFW_KEY_SPACE)  paused = !paused; // пауза
-    if (key == GLFW_KEY_R) { animTime = 0; skierDistance = 0; skierLateral = 0; skierLateralSpeed = 0; speedMul = 0; camTarget = glm::vec3(0); camYaw = 45; camPitch = 30; camDistance = 20; } // сброс
+    if (key == GLFW_KEY_SPACE)  paused = !paused;
+    if (key == GLFW_KEY_R) { animTime = 0; skierDistance = 0; skierLateral = 0; skierLateralSpeed = 0; speedMul = 0; camTarget = glm::vec3(0); camYaw = 45; camPitch = 30; camDistance = 20; }
 }
 
-// обработка зажатых клавиш
 void processInput(GLFWwindow* win, float dt) {
     glm::vec3 fwd(-std::sin(glm::radians(camYaw)), 0, -std::cos(glm::radians(camYaw)));
     glm::vec3 rgt(std::cos(glm::radians(camYaw)), 0, -std::sin(glm::radians(camYaw)));
     float camSpeed = 10.0f * dt;
 
-    // движение камеры (wasd)
     if (glfwGetKey(win, GLFW_KEY_W) == GLFW_PRESS) camTarget += fwd * camSpeed;
     if (glfwGetKey(win, GLFW_KEY_S) == GLFW_PRESS) camTarget -= fwd * camSpeed;
     if (glfwGetKey(win, GLFW_KEY_D) == GLFW_PRESS) camTarget += rgt * camSpeed;
@@ -423,26 +387,22 @@ void processInput(GLFWwindow* win, float dt) {
     if (glfwGetKey(win, GLFW_KEY_E) == GLFW_PRESS) camTarget.y += camSpeed;
     if (glfwGetKey(win, GLFW_KEY_Q) == GLFW_PRESS) camTarget.y -= camSpeed;
 
-    // управление лыжником (работает только если нет паузы)
     if (!paused) {
         float targetLateralSpeed = 0.0f;
         if (glfwGetKey(win, GLFW_KEY_LEFT) == GLFW_PRESS)  targetLateralSpeed = -4.0f;
         if (glfwGetKey(win, GLFW_KEY_RIGHT) == GLFW_PRESS) targetLateralSpeed = 4.0f;
 
-        // плавное изменение скорости бокового движения (чтобы лыжи разворачивались)
         skierLateralSpeed = glm::mix(skierLateralSpeed, targetLateralSpeed, dt * 10.0f);
         skierLateral += skierLateralSpeed * dt;
 
         if (glfwGetKey(win, GLFW_KEY_UP) == GLFW_PRESS) speedMul += 0.8f * dt;
         if (glfwGetKey(win, GLFW_KEY_DOWN) == GLFW_PRESS) speedMul -= 0.8f * dt;
 
-        // ограничения
         skierLateral = glm::clamp(skierLateral, TRACK_MIN_X, TRACK_MAX_X);
         speedMul = glm::clamp(speedMul, -0.6f, 2.0f);
     }
 }
 
-// отрисовка
 void drawPiece(const Shader& sh, const Piece& p, const glm::mat4& model) {
     sh.setMat4("model", model);
     sh.setVec3("matAmbient", p.mAmb); sh.setVec3("matDiffuse", p.mDif); sh.setVec3("matSpecular", p.mSpec); sh.setFloat("matShininess", p.shin);
@@ -454,88 +414,65 @@ void drawPieceShadow(const Shader& sh, const Mesh& m, const glm::mat4& model) {
     glBindVertexArray(m.VAO); glDrawElements(GL_TRIANGLES, m.indexCount, GL_UNSIGNED_INT, 0);
 }
 void renderSolidObjects(const Shader& sh, bool shadowPass) {
-    // статические объекты (гора, шале, деревья)
     for (auto& p : staticPieces) { if (shadowPass) drawPieceShadow(sh, *p.mesh, p.local); else drawPiece(sh, p, p.local); }
-    // лыжник
     glm::mat4 skierRoot = getSkierTransform();
     for (auto& p : skierPieces) { glm::mat4 m = skierRoot * p.local; if (shadowPass) drawPieceShadow(sh, *p.mesh, m); else drawPiece(sh, p, m); }
-    // кабинки
     for (int i = 0; i < 2; i++) {
         glm::mat4 root = getCabinTransform(i);
         for (auto& p : cabinPieces) { glm::mat4 m = root * p.local; if (shadowPass) drawPieceShadow(sh, *p.mesh, m); else drawPiece(sh, p, m); }
     }
 }
 
-// расстановка объектов на сцене
 void setupScene(GLuint snowTex, GLuint woodTex, GLuint roofTex, GLuint rockTex, GLuint metalTex, GLuint redTex, GLuint blueTex) {
-    // бесконечная подложка (чтобы не было видно краев при отдалении)
     staticPieces.push_back({ &gCube, snowTex, glm::translate(glm::mat4(1.0f), glm::vec3(0, -20.0f, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(1000.0f, 2.0f, 1000.0f)), glm::vec3(0.6f,0.65f,0.7f), glm::vec3(1.0f), glm::vec3(0.3f), 16.0f });
 
-    // гора
     staticPieces.push_back({ &gTerrain, snowTex, glm::mat4(1.0f), glm::vec3(0.6f,0.65f,0.7f), glm::vec3(1.0f), glm::vec3(0.3f), 16.0f });
 
-    // дальние горы (фон)
     staticPieces.push_back({ &gCone, snowTex, glm::translate(glm::mat4(1.0f), glm::vec3(-35, -8, -50)) * glm::scale(glm::mat4(1.0f), glm::vec3(30, 35, 30)), glm::vec3(0.5f,0.55f,0.6f), glm::vec3(0.9f,0.9f,0.95f), glm::vec3(0.2f), 8.0f });
     staticPieces.push_back({ &gCone, snowTex, glm::translate(glm::mat4(1.0f), glm::vec3(30, -8, -55)) * glm::scale(glm::mat4(1.0f), glm::vec3(25, 30, 25)), glm::vec3(0.5f,0.55f,0.6f), glm::vec3(0.9f,0.9f,0.95f), glm::vec3(0.2f), 8.0f });
 
-    // ===== шале (дом) =====
     float chX = 6.0f, chZ = 6.0f, wallH = 2.5f;
     float chBase = heightAt(chX, chZ);
 
-    // ищем самую низкую точку под фундаментом 3x3, чтобы дом не «парил» на склоне
     float hCorner[4] = {
         heightAt(chX - 1.5f, chZ - 1.5f), heightAt(chX + 1.5f, chZ - 1.5f),
         heightAt(chX - 1.5f, chZ + 1.5f), heightAt(chX + 1.5f, chZ + 1.5f)
     };
     float chMinH = glm::min(glm::min(hCorner[0], hCorner[1]),
         glm::min(hCorner[2], hCorner[3]));
-    float foundationDrop = (chBase - chMinH) + 0.15f;   // +0.15 небольшой запас
+    float foundationDrop = (chBase - chMinH) + 0.15f;
     float wallTotalH = wallH + foundationDrop;
 
-    // стены: низ удлинён вниз, чтобы уйти под землю на низкой стороне склона
     staticPieces.push_back({ &gCube, woodTex,
         glm::translate(glm::mat4(1.0f),
             glm::vec3(chX, chBase + wallH * 0.5f - foundationDrop * 0.5f, chZ))
         * glm::scale(glm::mat4(1.0f), glm::vec3(3, wallTotalH, 3)),
         glm::vec3(0.4f,0.32f,0.25f), glm::vec3(1.0f), glm::vec3(0.2f), 8.0f });
-    // крыша
     staticPieces.push_back({ &gPyramid, roofTex, glm::translate(glm::mat4(1.0f), glm::vec3(chX, chBase + wallH, chZ)) * glm::rotate(glm::mat4(1.0f), glm::radians(45.0f), glm::vec3(0,1,0)) * glm::scale(glm::mat4(1.0f), glm::vec3(2.5f, 2.5f, 2.5f)), glm::vec3(0.3f,0.2f,0.2f), glm::vec3(1.0f), glm::vec3(0.4f), 32.0f });
-    // труба
     staticPieces.push_back({ &gCube, rockTex, glm::translate(glm::mat4(1.0f), glm::vec3(chX + 0.8f, chBase + wallH + 1.5f, chZ)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.4f, 1.6f, 0.4f)), glm::vec3(0.4f), glm::vec3(1.0f), glm::vec3(0.1f), 8.0f });
-    // дверь (справа)
     staticPieces.push_back({ &gCube, woodTex, glm::translate(glm::mat4(1.0f), glm::vec3(chX + 1.5f, chBase + 0.6f, chZ)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 1.2f, 0.6f)), glm::vec3(0.3f,0.2f,0.15f), glm::vec3(1.0f), glm::vec3(0.1f), 8.0f });
-    // окно 1 (спереди)
     staticPieces.push_back({ &gCube, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(chX, chBase + 1.5f, chZ + 1.5f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.7f, 0.7f, 0.05f)), glm::vec3(0.4f,0.4f,0.5f), glm::vec3(1.0f), glm::vec3(0.9f), 64.0f });
-    // окно 2 (слева)
     staticPieces.push_back({ &gCube, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(chX - 1.5f, chBase + 1.5f, chZ)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, 0.7f, 0.7f)), glm::vec3(0.4f,0.4f,0.5f), glm::vec3(1.0f), glm::vec3(0.9f), 64.0f });
-    // окно 3 (сзади)
     staticPieces.push_back({ &gCube, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(chX, chBase + 1.5f, chZ - 1.5f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.7f, 0.7f, 0.05f)), glm::vec3(0.4f,0.4f,0.5f), glm::vec3(1.0f), glm::vec3(0.9f), 64.0f });
 
-    // деревья (расставлены так, чтобы не мешать канатке и трассе)
     std::vector<glm::vec2> trees = {
         {-15, 5}, {15, -5}, {8, 15}, {-8, 15}, {18, 0}, {12, 10}, {-12, -6}, {-18, -10}
     };
     for (auto& tp : trees) {
         float x = tp.x, z = tp.y, h = heightAt(x, z);
-        // ствол
         staticPieces.push_back({ &gCylinder, woodTex, glm::translate(glm::mat4(1.0f), glm::vec3(x, h + 0.75f, z)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.15f, 1.5f, 0.15f)), glm::vec3(0.3f,0.2f,0.15f), glm::vec3(1.0f), glm::vec3(0.1f), 8.0f });
-        // крона
         staticPieces.push_back({ &gCone, rockTex, glm::translate(glm::mat4(1.0f), glm::vec3(x, h + 1.5f, z)) * glm::scale(glm::mat4(1.0f), glm::vec3(1.2f, 3.5f, 1.2f)), glm::vec3(0.2f,0.4f,0.2f), glm::vec3(0.5f,0.8f,0.5f), glm::vec3(0.1f), 8.0f });
     }
 
-    // канатная дорога
     float lx = -8.0f, lz1 = 12.0f, lz2 = -8.0f;
     float b1 = heightAt(lx, lz1), b2 = heightAt(lx, lz2), tH = 4.0f;
 
-    // опоры
     staticPieces.push_back({ &gCylinder, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(lx, b1 + tH * 0.5f, lz1)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, tH, 0.2f)), glm::vec3(0.5f), glm::vec3(1.0f), glm::vec3(0.6f), 32.0f });
     staticPieces.push_back({ &gCylinder, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(lx, b2 + tH * 0.5f, lz2)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.2f, tH, 0.2f)), glm::vec3(0.5f), glm::vec3(1.0f), glm::vec3(0.6f), 32.0f });
 
-    // перекладины для крепления тросов
     staticPieces.push_back({ &gCylinder, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(lx, b1 + tH, lz1)) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0,0,1)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 2.2f, 0.1f)), glm::vec3(0.5f), glm::vec3(1.0f), glm::vec3(0.6f), 32.0f });
     staticPieces.push_back({ &gCylinder, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(lx, b2 + tH, lz2)) * glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0,0,1)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 2.2f, 0.1f)), glm::vec3(0.5f), glm::vec3(1.0f), glm::vec3(0.6f), 32.0f });
 
-    // два троса
     cableFrom = glm::vec3(lx, b1 + tH, lz1);
     cableTo = glm::vec3(lx, b2 + tH, lz2);
     glm::vec3 cDir = cableTo - cableFrom; float cLen = glm::length(cDir); glm::vec3 cDn = cDir / cLen;
@@ -543,60 +480,46 @@ void setupScene(GLuint snowTex, GLuint woodTex, GLuint roofTex, GLuint rockTex, 
     float angle = std::acos(glm::clamp(glm::dot(yA, cDn), -1.0f, 1.0f));
     glm::mat4 rot(1.0f); if (glm::length(axis) > 1e-4f) rot = glm::rotate(glm::mat4(1.0f), angle, glm::normalize(axis));
 
-    // левый трос
     staticPieces.push_back({ &gCylinder, metalTex, glm::translate(glm::mat4(1.0f), (cableFrom + cableTo) * 0.5f + glm::vec3(-1.0f, 0, 0)) * rot * glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, cLen, 0.05f)), glm::vec3(0.4f), glm::vec3(1.0f), glm::vec3(0.3f), 16.0f });
-    // правый трос
     staticPieces.push_back({ &gCylinder, metalTex, glm::translate(glm::mat4(1.0f), (cableFrom + cableTo) * 0.5f + glm::vec3(1.0f, 0, 0)) * rot * glm::scale(glm::mat4(1.0f), glm::vec3(0.05f, cLen, 0.05f)), glm::vec3(0.4f), glm::vec3(1.0f), glm::vec3(0.3f), 16.0f });
 
-    // лыжник (части в локальных координатах)
-    // туловище
     skierPieces.push_back({ &gCube, blueTex, glm::translate(glm::mat4(1.0f), glm::vec3(0, 0.8f, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.4f, 0.8f, 0.3f)), glm::vec3(0.2f,0.2f,0.3f), glm::vec3(1.0f), glm::vec3(0.3f), 16.0f });
-    // голова
     skierPieces.push_back({ &gCube, redTex, glm::translate(glm::mat4(1.0f), glm::vec3(0, 1.4f, -0.05f)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.3f, 0.3f, 0.3f)), glm::vec3(0.4f,0.2f,0.2f), glm::vec3(1.0f), glm::vec3(0.3f), 16.0f });
-    // ноги
     for (int s = -1; s <= 1; s += 2) {
         skierPieces.push_back({ &gCube, rockTex, glm::translate(glm::mat4(1.0f), glm::vec3(s * 0.15f, 0.25f, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.4f, 0.15f)), glm::vec3(0.3f), glm::vec3(0.2f), glm::vec3(0.1f), 8.0f });
     }
-    // лыжи и палки
     for (int s = -1; s <= 1; s += 2) {
         skierPieces.push_back({ &gCube, rockTex, glm::translate(glm::mat4(1.0f), glm::vec3(s * 0.15f, 0.05f, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.1f, 0.05f, 1.6f)), glm::vec3(0.2f), glm::vec3(1.0f), glm::vec3(0.1f), 8.0f });
         skierPieces.push_back({ &gCylinder, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(s * 0.25f, 0.6f, 0.1f)) * glm::rotate(glm::mat4(1.0f), glm::radians(-15.0f), glm::vec3(1,0,0)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.03f, 1.0f, 0.03f)), glm::vec3(0.3f), glm::vec3(1.0f), glm::vec3(0.5f), 32.0f });
     }
 
-    // кабинка (составной объект)
     cabinPieces.push_back({ &gCylinder, metalTex, glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.2f, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.04f, 0.4f, 0.04f)), glm::vec3(0.4f), glm::vec3(1.0f), glm::vec3(0.5f), 32.0f });
     cabinPieces.push_back({ &gCube, redTex, glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.7f, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.8f)), glm::vec3(0.4f,0.2f,0.2f), glm::vec3(1.0f), glm::vec3(0.5f), 32.0f });
     cabinPieces.push_back({ &gCone, roofTex, glm::translate(glm::mat4(1.0f), glm::vec3(0, -0.3f, 0)) * glm::scale(glm::mat4(1.0f), glm::vec3(0.6f, 0.25f, 0.6f)), glm::vec3(0.3f,0.2f,0.2f), glm::vec3(1.0f), glm::vec3(0.4f), 32.0f });
 }
 
 int main() {
-    // инициализация glfw
     if (!glfwInit()) return -1;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_SAMPLES, 4);
 
-    // создание окна
     GLFWwindow* window = glfwCreateWindow(SCR_W, SCR_H, "Ski Resort - KG&G", NULL, NULL);
     if (!window) { glfwTerminate(); return -1; }
     glfwMakeContextCurrent(window); glfwSwapInterval(1);
 
-    // привязка коллбэков
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
     glfwSetMouseButtonCallback(window, mouse_button_callback);
     glfwSetCursorPosCallback(window, cursor_callback);
     glfwSetScrollCallback(window, scroll_callback);
     glfwSetKeyCallback(window, key_callback);
 
-    // инициализация glew
     glewExperimental = GL_TRUE; if (glewInit() != GLEW_OK) return -1;
     glEnable(GL_DEPTH_TEST); glEnable(GL_MULTISAMPLE); glEnable(GL_PROGRAM_POINT_SIZE);
 
-    // создание мешей
     gCube = createCube(); gCylinder = createCylinder(24); gCone = createCone(24); gPyramid = createCone(4); gTerrain = createTerrain(200.0f, 100);
 
-    // создание текстур (все процедурные)
     GLuint snowTex = makeTexture(256, [](int x, int y) { float n = fbm(x * 0.08f, y * 0.08f, 42); float v = 0.92f + 0.08f * n; return glm::vec3(v * 0.95f, v * 0.97f, v); });
     GLuint woodTex = makeTexture(256, [](int x, int y) { float n = fbm(x * 0.2f, y * 0.06f, 7); float g = 0.5f + 0.5f * std::sin(y * 0.4f + n * 5.0f); return glm::vec3(0.32f + 0.14f * g + 0.08f * n, 0.18f + 0.08f * g + 0.04f * n, 0.08f + 0.03f * g); });
     GLuint roofTex = makeTexture(256, [](int x, int y) { float row = (y % 32) / 32.0f; float sh = 0.5f + 0.5f * row; float n = fbm(x * 0.1f, y * 0.1f, 13) * 0.2f; return glm::vec3(0.35f * sh + n, 0.08f * sh + n * 0.5f, 0.08f * sh + n * 0.5f); });
@@ -605,13 +528,10 @@ int main() {
     GLuint redTex = makeTexture(256, [](int x, int y) { float n = fbm(x * 0.08f, y * 0.08f, 5) * 0.15f; return glm::vec3(0.7f + n, 0.12f + n * 0.3f, 0.10f + n * 0.3f); });
     GLuint blueTex = makeTexture(256, [](int x, int y) { float n = fbm(x * 0.08f, y * 0.08f, 11) * 0.15f; return glm::vec3(0.15f + n, 0.3f + n, 0.7f + n); });
 
-    // создание шейдеров
     Shader mainShader(MAIN_VS, MAIN_FS), shadowShader(SHADOW_VS, SHADOW_FS), snowShader(SNOW_VS, SNOW_FS);
 
-    // сборка сцены
     setupScene(snowTex, woodTex, roofTex, rockTex, metalTex, redTex, blueTex);
 
-    // создание буфера для теней
     GLuint depthMapFBO, depthMap;
     glGenFramebuffers(1, &depthMapFBO); glGenTextures(1, &depthMap);
     glBindTexture(GL_TEXTURE_2D, depthMap);
@@ -622,7 +542,6 @@ int main() {
     glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO); glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, depthMap, 0);
     glDrawBuffer(GL_NONE); glReadBuffer(GL_NONE); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-    // инициализация снега
     srand(123);
     for (int i = 0; i < NUM_SNOW; i++) {
         SnowParticle p;
@@ -635,12 +554,10 @@ int main() {
     glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec3) * NUM_SNOW, NULL, GL_DYNAMIC_DRAW);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0); glEnableVertexAttribArray(0);
 
-    // настройка матриц света (ортогональная проекция)
     glm::mat4 lightProj = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, 0.1f, 200.0f);
     glm::mat4 lightView = glm::lookAt(glm::vec3(-20.0f, 40.0f, 20.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
     glm::mat4 lightSpace = lightProj * lightView;
 
-    // параметры освещения и тумана
     mainShader.use();
     mainShader.setInt("diffuseTex", 0); mainShader.setInt("shadowMap", 1);
     mainShader.setVec3("dirLightDir", glm::vec3(0.38f, -0.79f, -0.48f));
@@ -660,27 +577,22 @@ int main() {
     while (!glfwWindowShouldClose(window)) {
         double now = glfwGetTime(); float dt = (float)(now - lastTime); lastTime = now; if (dt > 0.1f) dt = 0.1f;
 
-        // 1. ввод
         processInput(window, dt);
 
-        // 2. обновление анимации
         if (!paused) { animTime += dt; skierDistance += getSkierSpeed() * dt; updateSnow(dt); }
 
-        // 3. проход теней (рендер со стороны солнца)
         shadowShader.use(); shadowShader.setMat4("lightSpaceMatrix", lightSpace);
         glViewport(0, 0, SHADOW_W, SHADOW_H); glBindFramebuffer(GL_FRAMEBUFFER, depthMapFBO); glClear(GL_DEPTH_BUFFER_BIT);
         renderSolidObjects(shadowShader, true); glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
-        // 4. основной проход
         int currentWidth, currentHeight;
-        glfwGetFramebufferSize(window, &currentWidth, &currentHeight); // Получаем реальные размеры окна
-
-        glViewport(0, 0, currentWidth, currentHeight); // Устанавливаем Viewport под размер окна
+        glfwGetFramebufferSize(window, &currentWidth, &currentHeight);
+        
+        glViewport(0, 0, currentWidth, currentHeight);
         glClearColor(0.55f, 0.75f, 0.95f, 1.0f); glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::vec3 camPos = getCameraPos();
         glm::mat4 view = glm::lookAt(camPos, camTarget, glm::vec3(0, 1, 0));
-        // Используем динамическое соотношение сторон, чтобы картинка не искажалась
         glm::mat4 proj = glm::perspective(glm::radians(45.0f), (float)currentWidth / (float)currentHeight, 0.1f, 250.0f);
 
         mainShader.use(); mainShader.setMat4("view", view); mainShader.setMat4("projection", proj);
@@ -688,13 +600,11 @@ int main() {
         glActiveTexture(GL_TEXTURE1); glBindTexture(GL_TEXTURE_2D, depthMap);
         renderSolidObjects(mainShader, false);
 
-        // 5. проход снега (с прозрачностью)
         glEnable(GL_BLEND); glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA); glDepthMask(GL_FALSE);
         snowShader.use(); snowShader.setMat4("view", view); snowShader.setMat4("projection", proj); snowShader.setFloat("pointSize", 8.0f);
         updateSnowVBO(); glBindVertexArray(snowVAO); glDrawArrays(GL_POINTS, 0, NUM_SNOW);
         glDepthMask(GL_TRUE); glDisable(GL_BLEND);
 
-        // 6. вывод на экран
         glfwSwapBuffers(window); glfwPollEvents();
     }
     glfwTerminate(); return 0;
